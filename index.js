@@ -3,7 +3,7 @@ const express = require('express')
 const app = express();
 const fetch = require("node-fetch");
 
-const PORT = process.env.PORT || 3000;//remove 3000 when pushing into production
+const PORT = process.env.PORT;//remove 3000 when pushing into production
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded( { extended: true } ))
@@ -20,23 +20,32 @@ const fetchGeocode = async (key) => {
     try {
         const res = await fetch(coordinates);
         const data = await res.json();
-        // console.log(data.results[0].geometry.location)
-        return data.results[0].geometry.location;
+        return data;
     } catch (e) {
         console.log("SOMETHING WENT WRONG!!!", e)
-        return e;
+        return "NOT FOUND";
     }
 }
 
 app.post('/', async (req, res) => {
     const addressList = req.body;
-    console.log(addressList);
-    var address = addressList[0];
-    var getCoordinates = await fetchGeocode(address);
-    var {lat , lng} = getCoordinates
-    console.log(`${lat} ${lng}`)
-    // fetchBitcoinPrice();
-    res.send(getCoordinates)
+    var result = [];
+    for(address of addressList){
+        // console.log(address);
+        const getCoordinates = await fetchGeocode(address);
+        // console.log(getCoordinates.status);
+        if(getCoordinates.status === "OK"){
+            const {lat , lng} = getCoordinates.results[0].geometry.location;
+            const data = {"add": address, "location": [lat , lng]}
+            result.push(data);
+        }
+        else {
+            const data = {"add": address, "location": ["NOT Found" , "NOT Found"]}
+            result.push(data);
+        }
+    }
+   
+    res.send(result)
 })
 
 app.listen(PORT, () => {
